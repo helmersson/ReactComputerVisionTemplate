@@ -1,26 +1,30 @@
 // Import dependencies
-import React, { useRef, useState, useEffect } from "react";
-import * as tf from "@tensorflow/tfjs";
 // 1. TODO - Import required model here
 // e.g. import * as tfmodel from "@tensorflow-models/tfmodel";
+import React, { useRef, useState, useEffect } from "react";
+import * as tf from "@tensorflow/tfjs";
+import * as posenet from "@tensorflow-models/posenet";
 import Webcam from "react-webcam";
 import "./App.css";
 // 2. TODO - Import drawing utility here
-// e.g. import { drawRect } from "./utilities";
+import { drawKeypoints, drawSkeleton } from "./utilities";
 
 function App() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
 
   // Main function
-  const runCoco = async () => {
+  const runPosenet = async () => {
     // 3. TODO - Load network 
-    // e.g. const net = await cocossd.load();
+  const net = await posenet.load({
+    inputResolution: { width: 640, height: 480 },
+    scale: 0.5,
+  });
     
     //  Loop and detect hands
     setInterval(() => {
       detect(net);
-    }, 10);
+    }, 13);
   };
 
   const detect = async (net) => {
@@ -35,7 +39,7 @@ function App() {
       const videoWidth = webcamRef.current.video.videoWidth;
       const videoHeight = webcamRef.current.video.videoHeight;
 
-      // Set video width
+      // Set video width and height
       webcamRef.current.video.width = videoWidth;
       webcamRef.current.video.height = videoHeight;
 
@@ -44,17 +48,28 @@ function App() {
       canvasRef.current.height = videoHeight;
 
       // 4. TODO - Make Detections
-      // e.g. const obj = await net.detect(video);
+      const pose = await net.estimateSinglePose(video);
+      //console.log(pose);
 
       // Draw mesh
       const ctx = canvasRef.current.getContext("2d");
 
       // 5. TODO - Update drawing utility
-      // drawSomething(obj, ctx)  
+      drawCanvas(pose, video, videoHeight, videoWidth, canvasRef);
     }
   };
 
-  useEffect(()=>{runCoco()},[]);
+  const drawCanvas = (pose, video, videoHeight, videoWidth, canvas) => {
+    const ctx = canvas.current.getContext("2d");
+    canvas.current.width = videoWidth;
+    canvas.current.height = videoHeight;
+
+    drawKeypoints(pose["keypoints"], 0.5, ctx);
+    drawSkeleton(pose["keypoints"], 0.5, ctx);
+  }
+
+  //useEffect(()=>{posenet()},[]);
+  runPosenet();
 
   return (
     <div className="App">
